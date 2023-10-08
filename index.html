@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js" integrity="sha512-emSwuKiMyYedRwflbZB2ghzX8Cw8fmNVgZ6yQNNXXagFzFOaQmbvQ1vmDkddHjm5AITcBIZfC7k4ShQSjgPAmQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+    
+<div class="container-fluid">
+    <h1 class="row">Login</h1>
+    <main> 
+ <div class="row">
+    <label for="username">username</label>
+    <input type="text" name="username" id="username">
+     </div>
+
+     <div class="row">
+        <label for="password">password</label>
+        <input type="password" name="password" id="password">
+     </div>
+
+     <div> 
+        <button id = "login" onclick="login()">Login</button>
+        <button id  = "dashboard" onclick="getDashboard()">Dashboard</button>
+        <button id = "settings" onclick="getSettings()">Settings page</button>
+     </div>
+
+    </main>
+
+</div>
+ 
+<script>
+
+//var token = '';//
+function login() {
+    const data = {
+    username: document.getElementById('username').value,
+    password: document.getElementById('password').value,
+};
+
+const cpath = window.location.pathname;
+
+axios.post('/api/login', data)
+  .then(res => {
+     console.log(res);
+     document.getElementById('username').value = '';
+     document.getElementById('password').value = '';
+     
+     if (res && res.data && res.data.success){
+       const token = res.data.token;
+       localStorage.setItem('jwt', token);
+       const cpath = window.location.pathname
+       if (cpath === '/api/dashboard') {
+                            getDashboard();
+                        } else if (cpath === '/api/settings') {
+                            getSettings();
+                        } else {
+
+                            history.pushState({}, '', '/api/dashboard');
+                            getDashboard();
+                        }
+        //getDashboard();
+     }
+  });
+}
+
+/*function getDashboard() {
+            document.querySelector('h1.row').innerHTML = 'Dashboard';
+            document.querySelector('main').innerHTML = 'Dashboard Content Goes Here';
+        }*/
+
+function getDashboard() {
+    //debugger;
+    const token = localStorage.getItem('jwt')
+    axios.get('/api/dashboard', {
+        headers: {
+            'Authorization': token ? 'Bearer '+token : null
+        }
+    }).then(res => {
+        debugger;
+        if(res && res.data && res.data.success){
+            document.querySelector('h1.row').innerHTML = 'Dashboard';
+            document.querySelector('main').innerHTML = res.data.myContent;
+        }
+    });
+}
+
+function getSettings() {
+    //debugger;
+    const token = localStorage.getItem('jwt')
+    axios.get('/api/settings', {
+        headers: {
+            'Authorization': token ? 'Bearer '+token : null
+        }
+    }).then(res => {
+        debugger;
+        if(res && res.data && res.data.success){
+            document.querySelector('h1.row').innerHTML = 'Settings';
+            document.querySelector('main').innerHTML = res.data.myContent;
+        }
+    });
+}
+function handleNavigation() {
+            const token = localStorage.getItem('jwt');
+            const currentPath = window.location.pathname;
+
+            if (token) {
+                // Decode the JWT token and check its expiration
+                const decodedToken = decodeJWT(token);
+                if (decodedToken.exp < Date.now() / 1000) {
+
+                    localStorage.removeItem('jwt');
+                    window.location.href = '/';
+                    return; // Stop further navigation handling
+                }
+
+                if (currentPath === '/dashboard') {
+                    getDashboard();
+                } else if (currentPath === '/settings') {
+                    getSettings();
+                }
+            } else {
+
+                window.location.href = '/';
+            }
+        }
+
+
+        function decodeJWT(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+
+                return JSON.parse(jsonPayload);
+            } catch (error) {
+                console.error('Error decoding JWT token:', error);
+                return {};
+            }
+        }
+        window.onload = function () {
+            handleNavigation();
+            document.getElementById('login').addEventListener('click', login);
+            document.getElementById('dashboard').addEventListener('click', function() {
+              
+                history.pushState({}, '', '/api/dashboard');
+                getDashboard();
+            });
+            document.getElementById('settings').addEventListener('click', function() {
+      
+                history.pushState({}, '', '/api/settings');
+                getSettings();
+            });
+        };
+
+</script>
+</body>
+</html>
